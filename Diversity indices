@@ -1,0 +1,24 @@
+# Species abundances
+counts <- c(1, 154, 26, 5, 13, 678, 3, 281, 40, 12, 153, 31, 133, 47, 4, 3)
+N <- sum(counts)
+S <- length(counts)
+p <- counts / N
+
+# Simpson's Index (1 - D)
+D <- sum(p^2)
+simpson_index <- 1 - D
+
+# Shannon Diversity Index (H′)
+shannon_index <- -sum(p * log(p))
+
+# Shannon Evenness
+shannon_evenness <- shannon_index / log(S)
+
+# Berger-Parker Dominance
+berger_parker <- max(counts) / N
+
+# Output
+cat("Simpson Diversity Index (1 - D):", round(simpson_index, 4), "\n")
+cat("Shannon Diversity Index (H')   :", round(shannon_index, 4), "\n")
+cat("Shannon Evenness (E)           :", round(shannon_evenness, 4), "\n")
+cat("Berger-Parker Dominance Index d:", round(berger_parker, 4), "\n")
