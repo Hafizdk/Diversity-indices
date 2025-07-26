@@ -1,24 +1,42 @@
-# Species abundances
-counts <- c(1, 154, 26, 5, 13, 678, 3, 281, 40, 12, 153, 31, 133, 47, 4, 3)
-N <- sum(counts)
-S <- length(counts)
-p <- counts / N
+# Species total counts
+mosquito_counts <- c(
+  Ae_aegypti = 1,
+  Ae_albopictus = 154,
+  An_lvcraeus = 26,
+  An_umbrosus = 5,
+  Armigeres_kesseli = 13,
+  Ar_subalbatus = 678,
+  An_sundaicus = 3,
+  Cx_vishnui = 281,
+  Mansonia_uniformis = 40,
+  Coquillettidia = 12,
+  Cx_quinquefasciatus = 153,
+  Cx_sitiens = 31,
+  Ae_butleri = 133,
+  Cx_gelidus = 47,
+  Cx_tritaeniorhynchus = 4,
+  Cx_sinensis = 3
+)
+library(vegan)
+# Shannon Index
+H <- diversity(mosquito_counts, index = "shannon")
+print(paste("Shannon-Wiener Index (H'):", round(H, 3)))
+# Species Richness (S)
+S <- specnumber(mosquito_counts)
+# Shannon Evenness Index (Pielou's J)
+J <- H / log(S)
+# Display the results
+cat("Shannon-Wiener Diversity Index (H′):", round(H, 3), "\n")
+cat("Species Richness (S):", S, "\n")
+cat("Shannon Evenness Index (J):", round(J, 3), "\n")
+library (vegan)
+# Simpson's Index (D)
+D <- diversity(mosquito_counts, index = "simpson")
+# Calculate Simpson's Diversity Index (1 - D)
+simpson_diversity <- 1 - D
 
-# Simpson's Index (1 - D)
-D <- sum(p^2)
-simpson_index <- 1 - D
-
-# Shannon Diversity Index (H′)
-shannon_index <- -sum(p * log(p))
-
-# Shannon Evenness
-shannon_evenness <- shannon_index / log(S)
-
-# Berger-Parker Dominance
-berger_parker <- max(counts) / N
-
-# Output
-cat("Simpson Diversity Index (1 - D):", round(simpson_index, 4), "\n")
-cat("Shannon Diversity Index (H')   :", round(shannon_index, 4), "\n")
-cat("Shannon Evenness (E)           :", round(shannon_evenness, 4), "\n")
-cat("Berger-Parker Dominance Index d:", round(berger_parker, 4), "\n")
+# Display the result
+cat("Simpson's Diversity Index (1 - D):", round(simpson_diversity, 3), "\n")
+# Berger-Parker Index (d)
+d <- max(mosquito_counts) / sum(mosquito_counts)
+print(paste("Berger-Parker Dominance Index:", round(d, 3)))
