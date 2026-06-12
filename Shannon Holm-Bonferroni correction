@@ -1,0 +1,118 @@
+# ============================================
+# Bonferroni and Holm-Bonferroni Corrections
+# ============================================
+library(vegan)
+
+blood_meal <- data.frame(
+  Species = c("Ae. butleri", "Cx. vishnui",
+              "Ae. albopictus", "Ar. subalbatus",
+              "Cx. quinquefasciatus"),
+  Human   = c(14, 9,  13, 31, 33),
+  Monkey  = c(0,  0,   0, 20,  2),
+  Dog     = c(0,  0,   0,  0,  8),
+  Cat     = c(0,  3,   5, 10, 24),
+  Chicken = c(0,  0,   0,  0,  0),
+  Bovine  = c(
+)
+
+rownames(blood_meal) <- blood_meal$Species
+count_matrix <- blood_meal[, -1]
+
+hutcheson_t_test <- function(x1, x2) {
+  x1 <- x1[x1 > 0]; x2 <- x2[x2 > 0]
+  n1 <- sum(x1);     n2 <- sum(x2)
+  p1 <- x1/n1;       p2 <- x2/n2
+  H1 <- -sum(p1 * log(p1))
+  H2 <- -sum(p2 * log(p2))
+  var1 <- (sum(p1*(log(p1))^2) - (sum(p1*log(p1)))^2) / n1
+  var2 <- (sum(p2*(log(p2))^2) - (sum(p2*log(p2)))^2) / n2
+  t_stat <- (H1 - H2) / sqrt(var1 + var2)
+  df     <- (var1 + var2)^2 /
+            ((var1^2/(n1-1)) + (var2^2/(n2-1)))
+  p_val  <- 2 * pt(-abs(t_stat), df = df)
+  return(list(H1=round(H1,3), H2=round(H2,3),
+              t=round(t_stat,3), df=round(df,1),
+              p_value=round(p_val,4)))
+}
+
+species_list <- blood_meal$Species
+n_species    <- length(species_list)
+
+# ============================================
+# Collect all raw p-values and pair names
+# ============================================
+
+p_raw      <- c()
+pair_names <- c()
+H1_vals    <- c()
+H2_vals    <- c()
+t_vals     <- c()
+df_vals    <- c()
+
+for (i in 1:(n_species-1)) {
+  for (j in (i+1):n_species) {
+    x1 <- as.numeric(count_matrix[i,])
+    x2 <- as.numeric(count_matrix[j,])
+    if (sum(x1>0) < 2 && sum(x2>0) < 2) next
+    res        <- hutcheson_t_test(x1, x2)
+    p_raw      <- c(p_raw, res$p_value)
+    pair_names <- c(pair_names,
+                    paste(species_list[i], "vs", species_list[j]))
+    H1_vals    <- c(H1_vals, res$H1)
+    H2_vals    <- c(H2_vals, res$H2)
+    t_vals     <- c(t_vals,  res$t)
+    df_vals    <- c(df_vals, res$df)
+  }
+}
+
+# ============================================
+# Apply both corrections
+# ============================================
+
+p_bonferroni <- p.adjust(p_raw, method = "bonferroni")
+p_holm       <- p.adjust(p_raw, method = "holm")
+
+# Significance labels
+sig_label <- function(p) {
+  ifelse(p < 0.001, "***",
+  ifelse(p < 0.01,  "**",
+  ifelse(p < 0.05,  "*", "ns")))
+}
+
+# ============================================
+# Final Summary Table
+# ============================================
+
+results_table <- data.frame(
+  Comparison       = pair_names,
+  H1               = H1_vals,
+  H2               = H2_vals,
+  t                = t_vals,
+  df               = df_vals,
+  p_raw            = round(p_raw, 4),
+  p_Bonferroni     = round(p_bonferroni, 4),
+  p_Holm           = round(p_holm, 4),
+  Sig_raw          = sig_label(p_raw),
+  Sig_Bonferroni   = sig_label(p_bonferroni),
+  Sig_Holm         = sig_label(p_holm),
+  Concordant       = ifelse(sig_label(p_bonferroni) == 
+                            sig_label(p_holm), "Yes", "No")
+)
+
+cat("\n===== Hutcheson t-test: Bonferroni vs Holm-Bonferroni =====\n\n")
+print(results_table, row.names = FALSE)
+
+cat("\n===== Concordance Check =====\n")
+cat(sprintf("Total comparisons:     %d\n", nrow(results_table)))
+cat(sprintf("Concordant results:    %d\n", sum(results_table$Concordant == "Yes")))
+cat(sprintf("Discordant results:    %d\n", sum(results_table$Concordant == "No")))
+
+if (all(results_table$Concordant == "Yes")) {
+  cat("\nBoth correction methods yield IDENTICAL conclusions
+across all pairwise comparisons.\n")
+} else {
+  cat("\nDiscordant pairs:\n")
+  print(results_table[results_table$Concordant == "No",
+                       c("Comparison", "p_raw",
+                         "Sig_Bonferroni", "Sig_Holm")])
+}
